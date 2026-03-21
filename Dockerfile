@@ -4,7 +4,7 @@ FROM tomcat:9.0-jdk21
 RUN rm -rf /usr/local/tomcat/webapps/*
 
 # Copy WAR as ROOT (correct path)
-COPY target/computerMcp.war /usr/local/tomcat/webapps/ROOT.war
+COPY computerMcp.war /usr/local/tomcat/webapps/ROOT.war
 
 # Start Tomcat on Render PORT
 CMD sed -i "s/port=\"8080\"/port=\"${PORT}\"/" /usr/local/tomcat/conf/server.xml && catalina.sh run
