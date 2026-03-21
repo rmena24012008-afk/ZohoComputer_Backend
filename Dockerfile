@@ -3,8 +3,8 @@ FROM tomcat:9.0-jdk21
 # Remove default apps
 RUN rm -rf /usr/local/tomcat/webapps/*
 
-# Copy WAR
-COPY computerMcp.war /usr/local/tomcat/webapps/ROOT.war
+# Copy WAR as ROOT (correct path)
+COPY target/computerMcp.war /usr/local/tomcat/webapps/ROOT.war
 
-# Replace Tomcat port with Render PORT
+# Start Tomcat on Render PORT
 CMD sed -i "s/port=\"8080\"/port=\"${PORT}\"/" /usr/local/tomcat/conf/server.xml && catalina.sh run
