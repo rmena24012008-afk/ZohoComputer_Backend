@@ -8,7 +8,7 @@
     <display-name>AI Task Agent Backend</display-name>
 
     <!-- CORS filter must run FIRST -->
-    <filter>
+    <!-- <filter>
         <filter-name>CorsFilter</filter-name>
         <filter-class>com.agent.filter.CorsFilter</filter-class>
         <async-supported>true</async-supported>
@@ -16,10 +16,10 @@
     <filter-mapping>
         <filter-name>CorsFilter</filter-name>
         <url-pattern>/*</url-pattern>
-    </filter-mapping>
+    </filter-mapping> -->
 
     <!-- Auth filter runs second -->
-    <filter>
+    <!-- <filter>
         <filter-name>AuthFilter</filter-name>
         <filter-class>com.agent.filter.AuthFilter</filter-class>
         <async-supported>true</async-supported>
@@ -27,7 +27,7 @@
     <filter-mapping>
         <filter-name>AuthFilter</filter-name>
         <url-pattern>/api/*</url-pattern>
-    </filter-mapping>
+    </filter-mapping> -->
 
     <!-- ── v1.1 additions ──────────────────────────────────────────────── -->
 
