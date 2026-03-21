@@ -30,7 +30,15 @@
     </filter-mapping>
 
     <!-- ── v1.1 additions ──────────────────────────────────────────────── -->
+<servlet>
+    <servlet-name>LoginServlet</servlet-name>
+    <servlet-class>com.agent.servlet.auth.LoginServlet</servlet-class>
+</servlet>
 
+<servlet-mapping>
+    <servlet-name>LoginServlet</servlet-name>
+    <url-pattern>/api/auth/login</url-pattern>
+</servlet-mapping>
 
     <!-- ── v1.2 OAuth token exchange servlets ─────────────────────────── -->
 
