@@ -52,7 +52,7 @@ public class AppConfig {
     public static final String ENCRYPTION_SECRET = get("ENCRYPTION_SECRET", "MISSING_ENCRYPTION_SECRET");
 
     // ── External Services ───────────────────────────────────────────────
-    public static final String MCP_SERVER_URL      = get("MCP_SERVER_URL",      "http://localhost:5000");
+    public static final String FLASK_AGENT_URL     = get("FLASK_AGENT_URL",     "http://localhost:5000");
     public static final String TASK_EXECUTOR_WS_URL = get("TASK_EXECUTOR_WS_URL", "ws://localhost:6000/ws");
 
     // ── CORS ────────────────────────────────────────────────────────────

@@ -4,11 +4,11 @@ import com.agent.dao.AuthTokenDao;
 import com.agent.model.AuthToken;
 import com.agent.service.OAuthTokenService;
 import com.agent.util.ResponseUtil;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -95,7 +95,18 @@ public class OAuthCallbackServlet extends HttpServlet {
             long userId = (long) request.getAttribute("userId");
 
             String body = new String(request.getInputStream().readAllBytes());
-            com.google.gson.JsonObject json = com.agent.util.JsonUtil.parse(body);
+            if (body == null || body.isBlank()) {
+                ResponseUtil.sendError(response, 400, "Request body is required");
+                return;
+            }
+
+            com.google.gson.JsonObject json;
+            try {
+                json = com.agent.util.JsonUtil.parse(body);
+            } catch (Exception e) {
+                ResponseUtil.sendError(response, 400, "Invalid JSON body");
+                return;
+            }
 
             String provider    = json.has("provider")     ? json.get("provider").getAsString().trim()     : null;
             String code        = json.has("code")         ? json.get("code").getAsString().trim()         : null;

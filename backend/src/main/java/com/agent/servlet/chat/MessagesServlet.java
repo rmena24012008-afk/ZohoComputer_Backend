@@ -3,13 +3,12 @@ package com.agent.servlet.chat;
 import com.agent.dao.MessageDao;
 import com.agent.dao.SessionDao;
 import com.agent.model.ChatMessage;
-import com.agent.util.JsonUtil;
 import com.agent.util.ResponseUtil;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -20,10 +19,14 @@ import java.util.Map;
 /**
  * GET /api/sessions/{id}/messages — Fetch all messages for a chat session
  *
- * URL pattern uses a wildcard to match the session ID in the path.
- * Path format: /api/sessions/{sessionId}/messages
+ * Mapped to /api/messages/* — the session ID is passed as a path parameter.
+ * Path format: /api/messages/{sessionId}
+ *
+ * NOTE: Servlet spec does NOT support mid-path wildcards like /api/sessions/X/messages.
+ * The pattern /api/sessions/* is already taken by SessionServlet, so we use a
+ * dedicated /api/messages/* path to avoid routing conflicts.
  */
-@WebServlet("/api/sessions/*/messages")
+@WebServlet("/api/messages/*")
 public class MessagesServlet extends HttpServlet {
 
     @Override
@@ -33,24 +36,22 @@ public class MessagesServlet extends HttpServlet {
         try {
             long userId = (long) request.getAttribute("userId");
 
-            // Extract sessionId from the request URI
-            // URI format: /api/sessions/{id}/messages
-            String uri = request.getRequestURI();
-            String contextPath = request.getContextPath();
-            String relativePath = uri.substring(contextPath.length());
+            // Extract sessionId from path info: /api/messages/{sessionId}
+            String pathInfo = request.getPathInfo();
+            if (pathInfo == null || pathInfo.equals("/")) {
+                ResponseUtil.sendError(response, 400, "Session ID is required in path: /api/messages/{sessionId}");
+                return;
+            }
 
-            // Parse: /api/sessions/{id}/messages
-            String[] parts = relativePath.split("/");
-            // parts = ["", "api", "sessions", "{id}", "messages"]
-
-            if (parts.length < 5) {
+            String[] parts = pathInfo.split("/");
+            if (parts.length < 2) {
                 ResponseUtil.sendError(response, 400, "Invalid path format");
                 return;
             }
 
             long sessionId;
             try {
-                sessionId = Long.parseLong(parts[3]);
+                sessionId = Long.parseLong(parts[1]);
             } catch (NumberFormatException e) {
                 ResponseUtil.sendError(response, 400, "Invalid session ID format");
                 return;

@@ -6,11 +6,11 @@ import com.agent.service.JwtService;
 import com.agent.util.JsonUtil;
 import com.agent.util.ResponseUtil;
 import com.google.gson.JsonObject;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.io.IOException;
@@ -32,7 +32,18 @@ public class LoginServlet extends HttpServlet {
         try {
             // 1. Parse JSON body
             String body = new String(request.getInputStream().readAllBytes());
-            JsonObject json = JsonUtil.parse(body);
+            if (body == null || body.isBlank()) {
+                ResponseUtil.sendError(response, 400, "Request body is required");
+                return;
+            }
+
+            JsonObject json;
+            try {
+                json = JsonUtil.parse(body);
+            } catch (Exception e) {
+                ResponseUtil.sendError(response, 400, "Invalid JSON body");
+                return;
+            }
 
             String email = json.has("email") ? json.get("email").getAsString().trim() : null;
             String password = json.has("password") ? json.get("password").getAsString() : null;

@@ -5,11 +5,11 @@ import com.agent.model.ChatSession;
 import com.agent.util.JsonUtil;
 import com.agent.util.ResponseUtil;
 import com.google.gson.JsonObject;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -64,11 +64,21 @@ public class SessionsServlet extends HttpServlet {
             long userId = (long) request.getAttribute("userId");
 
             String body = new String(request.getInputStream().readAllBytes());
-            JsonObject json = JsonUtil.parse(body);
+            String title = "New conversation";
 
-            String title = json.has("title")
-                    ? json.get("title").getAsString().trim()
-                    : "New conversation";
+            if (body != null && !body.isBlank()) {
+                try {
+                    JsonObject json = JsonUtil.parse(body);
+                    if (json.has("title") && !json.get("title").isJsonNull()) {
+                        String t = json.get("title").getAsString().trim();
+                        if (!t.isEmpty()) {
+                            title = t;
+                        }
+                    }
+                } catch (Exception ignored) {
+                    // Invalid JSON — use default title
+                }
+            }
 
             ChatSession session = SessionDao.create(userId, title);
 

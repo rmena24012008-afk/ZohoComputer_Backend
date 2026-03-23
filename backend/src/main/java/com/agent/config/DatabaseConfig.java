@@ -26,7 +26,7 @@ public class DatabaseConfig {
                     AppConfig.DB_HOST + ":" +
                     AppConfig.DB_PORT + "/" +
                     AppConfig.DB_NAME +
-                    "?sslMode=REQUIRED&enabledTLSProtocols=TLSv1.2";
+                    "?sslMode=REQUIRED&enabledTLSProtocols=TLSv1.2&serverTimezone=UTC";
 
             config.setJdbcUrl(jdbcUrl);
             config.setUsername(AppConfig.DB_USER);
@@ -56,7 +56,6 @@ public class DatabaseConfig {
      * Always use try-with-resources to ensure proper cleanup.
      */
     public static Connection getConnection() throws SQLException {
-    	System.out.println("\n\n Connected...\n\n");
         return getDataSource().getConnection();
     }
 

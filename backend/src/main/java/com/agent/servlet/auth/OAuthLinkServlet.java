@@ -6,11 +6,11 @@ import com.agent.service.OAuthTokenService;
 import com.agent.util.JsonUtil;
 import com.agent.util.ResponseUtil;
 import com.google.gson.JsonObject;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,7 +35,18 @@ public class OAuthLinkServlet extends HttpServlet {
             long userId = (long) request.getAttribute("userId");
 
             String body = new String(request.getInputStream().readAllBytes());
-            JsonObject json = JsonUtil.parse(body);
+            if (body == null || body.isBlank()) {
+                ResponseUtil.sendError(response, 400, "Request body is required");
+                return;
+            }
+
+            JsonObject json;
+            try {
+                json = JsonUtil.parse(body);
+            } catch (Exception e) {
+                ResponseUtil.sendError(response, 400, "Invalid JSON body");
+                return;
+            }
 
             String provider      = getStr(json, "provider");
             String clientId      = getStr(json, "client_id");
@@ -133,7 +144,19 @@ public class OAuthLinkServlet extends HttpServlet {
             long userId = (long) request.getAttribute("userId");
 
             String body = new String(request.getInputStream().readAllBytes());
-            JsonObject json = JsonUtil.parse(body);
+            if (body == null || body.isBlank()) {
+                ResponseUtil.sendError(response, 400, "Request body is required");
+                return;
+            }
+
+            JsonObject json;
+            try {
+                json = JsonUtil.parse(body);
+            } catch (Exception e) {
+                ResponseUtil.sendError(response, 400, "Invalid JSON body");
+                return;
+            }
+
             String provider = getStr(json, "provider");
 
             if (provider == null || provider.isBlank()) {

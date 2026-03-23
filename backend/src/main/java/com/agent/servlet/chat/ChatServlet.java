@@ -4,16 +4,16 @@ import com.agent.dao.MessageDao;
 import com.agent.dao.SessionDao;
 import com.agent.model.ChatMessage;
 import com.agent.model.ChatSession;
-import com.agent.service.McpClient;
+import com.agent.service.FlaskAgentClient;
 import com.agent.util.JsonUtil;
 import com.agent.util.ResponseUtil;
 import com.google.gson.JsonObject;
-import javax.servlet.AsyncContext;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.AsyncContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
@@ -24,8 +24,8 @@ import java.util.List;
  * 1. Saves the user message to the database
  * 2. Fetches conversation history for AI context
  * 3. Starts an async context for SSE streaming
- * 4. Forwards the message to the MCP Server
- * 5. Proxies the MCP SSE stream back to the frontend in real-time
+ * 4. Forwards the message to the Flask Agent Server
+ * 5. Proxies the Flask Agent SSE stream back to the frontend in real-time
  * 6. Saves the complete assistant response to the database
  * 7. Updates the session title if it's the first message
  */
@@ -68,9 +68,21 @@ public class ChatServlet extends HttpServlet {
 
             // 3. Parse message from request body
             String body = new String(request.getInputStream().readAllBytes());
-            JsonObject json = JsonUtil.parse(body);
+            if (body == null || body.isBlank()) {
+                ResponseUtil.sendError(response, 400, "Request body is required");
+                return;
+            }
 
-            if (!json.has("message") || json.get("message").getAsString().trim().isEmpty()) {
+            JsonObject json;
+            try {
+                json = JsonUtil.parse(body);
+            } catch (Exception e) {
+                ResponseUtil.sendError(response, 400, "Invalid JSON body");
+                return;
+            }
+
+            if (!json.has("message") || json.get("message").isJsonNull()
+                    || json.get("message").getAsString().trim().isEmpty()) {
                 ResponseUtil.sendError(response, 400, "Message is required");
                 return;
             }
@@ -95,20 +107,24 @@ public class ChatServlet extends HttpServlet {
             response.setHeader("X-Accel-Buffering", "no"); // Disable nginx buffering if proxied
             response.flushBuffer();
 
-            // 8. Forward to MCP Server in a separate thread (non-blocking)
-            new Thread(() -> {
+            // 8. Forward to Flask Agent Server in a separate thread (non-blocking)
+            Thread streamThread = new Thread(() -> {
                 try {
                     PrintWriter writer = response.getWriter();
                     StringBuilder fullResponse = new StringBuilder();
 
-                    // Call MCP Server and proxy SSE events to frontend
-                    McpClient.streamChat(userId, sessionId, message, history,
+                    // Call Flask Agent Server and proxy SSE events to frontend
+                    // NOTE: We forward all events EXCEPT 'done' from Flask Agent,
+                    // because we send our own 'done' event with DB metadata after saving.
+                    FlaskAgentClient.streamChat(userId, sessionId, message, history,
                             (eventType, eventData) -> {
-                                // Forward each SSE event to the frontend
-                                synchronized (writer) {
-                                    writer.write("event: " + eventType + "\n");
-                                    writer.write("data: " + eventData + "\n\n");
-                                    writer.flush();
+                                // Forward each SSE event to the frontend (skip Flask Agent's done — we send our own)
+                                if (!"done".equals(eventType)) {
+                                    synchronized (writer) {
+                                        writer.write("event: " + eventType + "\n");
+                                        writer.write("data: " + eventData + "\n\n");
+                                        writer.flush();
+                                    }
                                 }
 
                                 // Collect tokens to build the full assistant message
@@ -122,9 +138,18 @@ public class ChatServlet extends HttpServlet {
                                         // If parsing fails, append raw data
                                         fullResponse.append(eventData);
                                     }
+                                } else if ("done".equals(eventType) && fullResponse.length() == 0) {
+                                    // Fallback: capture full_response from done event if no tokens were received
+                                    try {
+                                        JsonObject donePayload = JsonUtil.parse(eventData);
+                                        if (donePayload.has("full_response")) {
+                                            fullResponse.append(donePayload.get("full_response").getAsString());
+                                        }
+                                    } catch (Exception e) {
+                                        // Ignore parsing errors on done payload
+                                    }
                                 }
-
-                                }
+                            }
                     );
 
                     // 9. Save complete assistant message to DB
@@ -133,17 +158,20 @@ public class ChatServlet extends HttpServlet {
 
                     // 10. Update session title if this is the first exchange
                     ChatSession session = SessionDao.findById(sessionId);
-                    if (session != null && "New conversation".equals(session.getTitle())) {
-                        String newTitle = message.length() > 50
-                                ? message.substring(0, 50) + "..."
-                                : message;
-                        SessionDao.updateTitle(sessionId, newTitle);
+                    String sessionTitle = "New conversation";
+                    if (session != null) {
+                        if ("New conversation".equals(session.getTitle())) {
+                            String newTitle = message.length() > 50
+                                    ? message.substring(0, 50) + "..."
+                                    : message;
+                            SessionDao.updateTitle(sessionId, newTitle);
+                            sessionTitle = newTitle;
+                        } else {
+                            sessionTitle = session.getTitle();
+                        }
                     }
 
-                    // 11. Send done event with final metadata
-                    String sessionTitle = SessionDao.findById(sessionId) != null
-                            ? SessionDao.findById(sessionId).getTitle()
-                            : "New conversation";
+                    // 11. Send our single 'done' event with DB metadata
 
                     JsonObject doneData = new JsonObject();
                     doneData.addProperty("message_id", messageId);
@@ -177,7 +205,10 @@ public class ChatServlet extends HttpServlet {
                         }
                     }
                 }
-            }).start();
+            });
+            streamThread.setName("chat-stream-" + sessionId);
+            streamThread.setDaemon(true);
+            streamThread.start();
 
         } catch (Exception e) {
             ResponseUtil.sendError(response, 500, "Internal server error: " + e.getMessage());

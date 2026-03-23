@@ -1,9 +1,9 @@
 package com.agent.filter;
 
 import com.agent.config.AppConfig;
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 
@@ -28,10 +28,21 @@ public class CorsFilter implements Filter {
         HttpServletResponse response = (HttpServletResponse) res;
         HttpServletRequest request = (HttpServletRequest) req;
 
-        response.setHeader("Access-Control-Allow-Origin", AppConfig.FRONTEND_ORIGIN);
+        // Validate origin against configured frontend origin
+        String origin = request.getHeader("Origin");
+        String allowedOrigin = AppConfig.FRONTEND_ORIGIN;
+
+        if (origin != null && origin.equals(allowedOrigin)) {
+            response.setHeader("Access-Control-Allow-Origin", origin);
+        } else {
+            // Fallback for same-origin requests (no Origin header) or dev
+            response.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+        }
+
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
         response.setHeader("Access-Control-Allow-Credentials", "true");
+        response.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
 
         // Handle preflight OPTIONS requests immediately
         if ("OPTIONS".equals(request.getMethod())) {

@@ -3,9 +3,10 @@ package com.agent.service;
 import com.agent.config.AppConfig;
 import com.agent.dao.ScheduledTaskDao;
 import com.agent.dao.TaskRunLogDao;
+import com.agent.model.ScheduledTask;
 import com.agent.util.JsonUtil;
 import com.google.gson.JsonObject;
-import javax.websocket.*;
+import jakarta.websocket.*;
 
 import java.io.IOException;
 import java.net.URI;
@@ -181,8 +182,11 @@ public class TaskExecutorClient {
             // Increment completed runs counter
             ScheduledTaskDao.incrementCompletedRuns(taskId);
 
-            // If the task is still "scheduled", update to "running"
-            ScheduledTaskDao.updateStatus(taskId, "running");
+            // Only promote from "scheduled" to "running" — never overwrite completed/cancelled
+            ScheduledTask task = ScheduledTaskDao.findByTaskId(taskId);
+            if (task != null && "scheduled".equals(task.getStatus())) {
+                ScheduledTaskDao.updateStatus(taskId, "running");
+            }
 
             System.out.println("[TaskExecutorClient] Task run update: " + taskId +
                     " run #" + runNumber + " status=" + status);

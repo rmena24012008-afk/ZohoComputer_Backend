@@ -4,11 +4,11 @@ import com.agent.config.AppConfig;
 import com.agent.dao.ProjectDao;
 import com.agent.model.Project;
 import com.agent.util.ResponseUtil;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,12 +17,15 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 /**
- * GET /api/projects/{projectId}/download — Download a project as a ZIP file.
+ * GET /api/project-download/{projectId} — Download a project as a ZIP file.
  *
  * Proxies the ZIP download from the Task Executor (Port 6000) to the frontend.
  * Supports ?token= query param for browser downloads that can't set Authorization headers.
+ *
+ * NOTE: Servlet spec does NOT support mid-path wildcards like /api/projects/X/download.
+ * Remapped to /api/project-download/* for correct routing.
  */
-@WebServlet("/api/projects/*/download")
+@WebServlet("/api/project-download/*")
 public class ProjectDownloadServlet extends HttpServlet {
 
     @Override
@@ -32,19 +35,20 @@ public class ProjectDownloadServlet extends HttpServlet {
         try {
             long userId = (long) request.getAttribute("userId");
 
-            // Extract projectId from the request URI
-            String uri = request.getRequestURI();
-            String contextPath = request.getContextPath();
-            String relativePath = uri.substring(contextPath.length());
+            // Extract projectId from path info: /api/project-download/{projectId}
+            String pathInfo = request.getPathInfo();
+            if (pathInfo == null || pathInfo.equals("/")) {
+                ResponseUtil.sendError(response, 400, "Project ID is required in path");
+                return;
+            }
 
-            // Parse: /api/projects/{projectId}/download
-            String[] parts = relativePath.split("/");
-            if (parts.length < 5) {
+            String[] parts = pathInfo.split("/");
+            if (parts.length < 2 || parts[1].isBlank()) {
                 ResponseUtil.sendError(response, 400, "Invalid path format");
                 return;
             }
 
-            String projectId = parts[3];
+            String projectId = parts[1];
 
             // Verify project belongs to user
             if (!ProjectDao.belongsToUser(projectId, userId)) {

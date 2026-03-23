@@ -3,9 +3,9 @@ package com.agent.filter;
 import com.agent.service.JwtService;
 import com.agent.util.ResponseUtil;
 import io.jsonwebtoken.Claims;
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.util.Set;
@@ -59,7 +59,6 @@ public class AuthFilter implements Filter {
         }
 
         // Extract token from Authorization header
-        System.out.println("RAW HEADER: " + request.getHeader("Authorization"));
         String authHeader = request.getHeader("Authorization");
 
 
@@ -77,20 +76,14 @@ public class AuthFilter implements Filter {
         }
 
         String token = authHeader.substring(7);
-        System.out.println("EXTRACTED TOKEN: " + token);
 
         try {
             Claims claims = JwtService.validateToken(token);
-            System.out.println("\n1\n"+claims);
             Long userId = ((Number) claims.get("user_id")).longValue();
             request.setAttribute("userId", userId);
-            System.out.println("\n2\n");
             request.setAttribute("username", claims.get("username", String.class));
-            System.out.println("\n3\n");
             chain.doFilter(req, res);
-            System.out.println("\n4\n");
         } catch (Exception e) {
-        	e.printStackTrace(); 
             ResponseUtil.sendError(response, 401, "Invalid or expired token");
         }
     }

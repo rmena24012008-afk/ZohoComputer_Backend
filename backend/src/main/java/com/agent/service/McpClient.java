@@ -17,7 +17,7 @@ import java.util.List;
  */
 public class McpClient {
 
-    private static final String MCP_URL = AppConfig.MCP_SERVER_URL;
+    private static final String MCP_URL = AppConfig.FLASK_AGENT_URL;
 
     /**
      * Callback interface for SSE events received from MCP.
