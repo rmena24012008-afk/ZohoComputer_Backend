@@ -38,11 +38,11 @@ public class AppConfig {
     }
 
     // ── Database ────────────────────────────────────────────────────────
-    public static final String DB_HOST     = get("DB_HOST",     "MISSING_DB_HOST");
-    public static final String DB_PORT     = get("DB_PORT",     "MISSING_DB_PORT");
-    public static final String DB_NAME     = get("DB_NAME",     "MISSING_DB_NAME");
-    public static final String DB_USER     = get("DB_USER",     "MISSING_DB_USER");
-    public static final String DB_PASSWORD = get("DB_PASSWORD", "MISSING_DB_PASSWORD");
+    public static final String DB_HOST     = System.getenv("DB_HOST"); //get("DB_HOST",     "MISSING_DB_HOST");
+    public static final String DB_PORT     = System.getenv("DB_PORT"); //get("DB_PORT",     "MISSING_DB_PORT");
+    public static final String DB_NAME     = System.getenv("DB_NAME");//get("DB_NAME",     "MISSING_DB_NAME");
+    public static final String DB_USER     = System.getenv("DB_USER");//,     "MISSING_DB_USER");
+    public static final String DB_PASSWORD = System.getenv("DB_PASSWORD");//get("DB_PASSWORD", "MISSING_DB_PASSWORD");
 
     // ── JWT ─────────────────────────────────────────────────────────────
     public static final String JWT_SECRET = get("JWT_SECRET", "MISSING_JWT_SECRET");
